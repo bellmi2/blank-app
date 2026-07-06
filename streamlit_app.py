@@ -1,59 +1,106 @@
+import random
 import streamlit as st
 
-st.set_page_config(page_title="Streamlit 요소 데모", page_icon="✨", layout="wide")
+st.set_page_config(page_title="영어 단어 게임", page_icon="🧠", layout="wide")
 
-st.title("🎉 Streamlit 요소 데모")
-st.caption("이 페이지는 자주 쓰는 Streamlit 위젯과 레이아웃 요소를 한 번에 보여줍니다.")
+st.title("🇬🇧 영어 단어 게임")
+st.caption("상단 중앙의 영어 단어를 보고 한글 뜻을 입력해보세요.")
+
+word_data = {
+    "apple": "사과",
+    "library": "도서관",
+    "travel": "여행",
+    "friend": "친구",
+    "study": "공부",
+    "happy": "행복한",
+    "weather": "날씨",
+    "music": "음악",
+    "family": "가족",
+    "coffee": "커피",
+}
+
+if "words" not in st.session_state:
+    items = list(word_data.items())
+    random.shuffle(items)
+    st.session_state.words = items
+    st.session_state.index = 0
+    st.session_state.score = 0
+    st.session_state.attempts = 0
+    st.session_state.feedback = ""
+    st.session_state.completed = False
+
+if st.session_state.index >= len(st.session_state.words):
+    st.session_state.completed = True
+
+def check_answer(user_answer: str) -> None:
+    if st.session_state.completed:
+        return
+
+    english, korean = st.session_state.words[st.session_state.index]
+    st.session_state.attempts += 1
+    normalized_input = user_answer.strip().replace(" ", "")
+    normalized_answer = korean.replace(" ", "")
+
+    if normalized_input == normalized_answer:
+        st.session_state.score += 1
+        st.session_state.feedback = f"✅ 정답이에요! '{english}'는 '{korean}'입니다."
+    else:
+        st.session_state.feedback = f"❌ 틀렸어요. 정답은 '{korean}'입니다."
+
+    st.session_state.index += 1
+    if st.session_state.index >= len(st.session_state.words):
+        st.session_state.completed = True
+
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2:
+    st.markdown(
+        f"<div style='text-align:center; font-size:4rem; font-weight:700; margin: 20px 0;'>{st.session_state.words[st.session_state.index][0] if not st.session_state.completed else '게임 완료!'}</div>",
+        unsafe_allow_html=True,
+    )
+
+st.divider()
+
+with st.expander("게임 설명", expanded=True):
+    st.write(
+        "- 영어 단어를 보고 한글 뜻을 맞춰보세요.\n"
+        "- 맞을 때마다 점수가 올라갑니다.\n"
+        "- 전체 단어를 모두 맞추면 게임이 완료됩니다."
+    )
+
+if st.session_state.completed:
+    st.success("🎉 모든 단어를 완료했습니다!")
+    st.balloons()
+    st.write(f"전체 시도: {st.session_state.attempts}회")
+    st.write(f"맞힌 단어: {st.session_state.score}개 / {len(st.session_state.words)}개")
+    if st.button("다시 시작하기"):
+        items = list(word_data.items())
+        random.shuffle(items)
+        st.session_state.words = items
+        st.session_state.index = 0
+        st.session_state.score = 0
+        st.session_state.attempts = 0
+        st.session_state.feedback = ""
+        st.session_state.completed = False
+else:
+    with st.form(key="guess_form"):
+        user_answer = st.text_input("한글 뜻을 입력하세요", value="", placeholder="예: 사과")
+        submitted = st.form_submit_button("정답 확인")
+
+    if submitted:
+        check_answer(user_answer)
+
+    if st.session_state.feedback:
+        st.info(st.session_state.feedback)
+
+    st.write(f"진행: {st.session_state.index + 1} / {len(st.session_state.words)}")
+    st.progress((st.session_state.index) / len(st.session_state.words))
+    st.write(f"현재 점수: {st.session_state.score}")
+
+st.divider()
 
 with st.sidebar:
-    st.header("사이드바")
-    name = st.text_input("이름", value="홍길동")
-    theme = st.selectbox("테마", ["라이트", "다크", "시스템"])
-    notify = st.checkbox("알림 받기", value=True)
-
-st.markdown("## 기본 텍스트")
-st.header("헤더")
-st.subheader("서브헤더")
-st.text("이것은 일반 텍스트입니다.")
-st.code("print('Hello, Streamlit!')", language="python")
-
-st.divider()
-
-col1, col2 = st.columns(2)
-with col1:
-    st.subheader("입력 폼")
-    message = st.text_area("메모", placeholder="여기에 내용을 입력해보세요.", height=120)
-    age = st.number_input("나이", min_value=0, max_value=120, value=25)
-    st.info(f"이름: {name} / 나이: {age}")
-
-with col2:
-    st.subheader("선택 위젯")
-    animal = st.radio("좋아하는 동물", ["강아지", "고양이", "토끼"])
-    tools = st.multiselect("사용할 도구", ["Python", "Streamlit", "Pandas", "Plotly"])
-    st.success(f"선택한 동물: {animal}")
-    st.write("선택한 도구:", tools)
-
-st.divider()
-
-st.subheader("슬라이더와 버튼")
-score = st.slider("완성도", 0, 100, 75)
-if st.button("버튼 클릭"):
-    st.balloons()
-    st.toast("버튼을 눌렀습니다!")
-
-st.progress(score / 100)
-st.metric("현재 점수", f"{score}점", "상승")
-
-with st.expander("추가 정보"):
-    st.write("이 예제는 여러 가지 Streamlit 요소를 한 화면에서 확인할 수 있도록 구성했습니다.")
-
-tab1, tab2 = st.tabs(["소개", "샘플 데이터"])
-with tab1:
-    st.write("Streamlit은 데이터 앱을 빠르게 만들 수 있는 Python 라이브러리입니다.")
-with tab2:
-    sample_data = [
-        {"이름": "Alice", "점수": 90},
-        {"이름": "Bob", "점수": 85},
-        {"이름": "Charlie", "점수": 92},
-    ]
-    st.dataframe(sample_data)
+    st.header("게임 정보")
+    st.write("- 문제 수: 10")
+    st.write("- 맞힌 개수: ", st.session_state.score)
+    st.write("- 시도 횟수: ", st.session_state.attempts)
+    st.write("- 다음 단어를 맞혀보세요!")
